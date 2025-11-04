@@ -13,21 +13,20 @@ fn benchmark_matmul(
     let shape_lhs = (batch, m, k);
     let shape_rhs = (batch, k, n);
     
+    // === PREPARE: 创建输入 (只做一次) ===
+    let lhs = Tensor::randn(0.0f32, 1.0, shape_lhs, &device).unwrap();
+    let rhs = Tensor::randn(0.0f32, 1.0, shape_rhs, &device).unwrap();
+    
     // 预热
     for _ in 0..3 {
-        let lhs = Tensor::randn(0.0f32, 1.0, shape_lhs, &device).unwrap();
-        let rhs = Tensor::randn(0.0f32, 1.0, shape_rhs, &device).unwrap();
         let _result = lhs.matmul(&rhs).unwrap();
     }
     
     std::thread::sleep(std::time::Duration::from_secs(1));
     
-    // 测试
+    // === EXECUTE: 仅测量计算时间 ===
     let mut durations = Vec::new();
     for _ in 0..num_samples {
-        let lhs = Tensor::randn(0.0f32, 1.0, shape_lhs, &device).unwrap();
-        let rhs = Tensor::randn(0.0f32, 1.0, shape_rhs, &device).unwrap();
-        
         let start = Instant::now();
         let _result = lhs.matmul(&rhs).unwrap();
         durations.push(start.elapsed().as_secs_f64());

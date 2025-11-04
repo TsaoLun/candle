@@ -16,29 +16,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  Device:    CPU");
     println!("  Operation: tanh()");
     println!("  Samples:   10");
+    println!("  Mode:      prepare/execute (matching burn-bench)");
     println!();
+    
+    // === PREPARE 阶段：创建输入 (只做一次) ===
+    println!("Preparing input tensor...");
+    let input = Tensor::randn(0.0f32, 1.0, shape, &device)?;
     
     // 预热 3 次 (与 burnbench 一致)
     println!("Warming up (3 iterations)...");
     for _ in 0..3 {
-        let tensor = Tensor::randn(0.0f32, 1.0, shape, &device)?;
-        let _result = tensor.tanh()?;
+        let _result = input.tanh()?;
     }
     
     // 睡眠 1 秒 (与 burnbench 一致)
     std::thread::sleep(std::time::Duration::from_secs(1));
     
-    // 运行 10 次测试 (与 benchmark 默认的 num_samples 相同)
+    // === EXECUTE 阶段：仅测量计算时间 ===
     println!("Running benchmark...");
     let mut durations = Vec::new();
     
     for i in 0..10 {
-        // 创建随机张量
-        let tensor = Tensor::randn(0.0f32, 1.0, shape, &device)?;
-        
-        // 测量时间
+        // 只执行操作，不分配新张量
         let start = Instant::now();
-        let _result = tensor.tanh()?;
+        let _result = input.tanh()?;
         let duration = start.elapsed();
         
         durations.push(duration);

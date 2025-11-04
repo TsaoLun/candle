@@ -4,19 +4,19 @@ use std::time::Instant;
 fn benchmark_sum_dim(shape: (usize, usize, usize), axis: usize, num_samples: usize) -> (f64, f64) {
     let device = Device::Cpu;
     
+    // === PREPARE: 创建输入 (只做一次) ===
+    let tensor = Tensor::randn(0.0f32, 1.0, shape, &device).unwrap();
+    
     // 预热
     for _ in 0..3 {
-        let tensor = Tensor::randn(0.0f32, 1.0, shape, &device).unwrap();
         let _result = tensor.sum_keepdim(axis).unwrap();
     }
     
     std::thread::sleep(std::time::Duration::from_secs(1));
     
-    // 测试
+    // === EXECUTE: 仅测量计算时间 ===
     let mut durations = Vec::new();
     for _ in 0..num_samples {
-        let tensor = Tensor::randn(0.0f32, 1.0, shape, &device).unwrap();
-        
         let start = Instant::now();
         let _result = tensor.sum_keepdim(axis).unwrap();
         durations.push(start.elapsed().as_secs_f64());
@@ -37,19 +37,19 @@ fn benchmark_sum_dim(shape: (usize, usize, usize), axis: usize, num_samples: usi
 fn benchmark_sum_full(shape: (usize, usize, usize), num_samples: usize) -> (f64, f64) {
     let device = Device::Cpu;
     
+    // === PREPARE: 创建输入 (只做一次) ===
+    let tensor = Tensor::randn(0.0f32, 1.0, shape, &device).unwrap();
+    
     // 预热
     for _ in 0..3 {
-        let tensor = Tensor::randn(0.0f32, 1.0, shape, &device).unwrap();
         let _result = tensor.sum_all().unwrap();
     }
     
     std::thread::sleep(std::time::Duration::from_secs(1));
     
-    // 测试
+    // === EXECUTE: 仅测量计算时间 ===
     let mut durations = Vec::new();
     for _ in 0..num_samples {
-        let tensor = Tensor::randn(0.0f32, 1.0, shape, &device).unwrap();
-        
         let start = Instant::now();
         let _result = tensor.sum_all().unwrap();
         durations.push(start.elapsed().as_secs_f64());
@@ -70,19 +70,19 @@ fn benchmark_sum_full(shape: (usize, usize, usize), num_samples: usize) -> (f64,
 fn benchmark_argmin(shape: (usize, usize, usize), axis: usize, num_samples: usize) -> (f64, f64) {
     let device = Device::Cpu;
     
+    // === PREPARE: 创建输入 (只做一次) ===
+    let tensor = Tensor::randn(0.0f32, 1.0, shape, &device).unwrap();
+    
     // 预热
     for _ in 0..3 {
-        let tensor = Tensor::randn(0.0f32, 1.0, shape, &device).unwrap();
         let _result = tensor.argmin_keepdim(axis).unwrap();
     }
     
     std::thread::sleep(std::time::Duration::from_secs(1));
     
-    // 测试
+    // === EXECUTE: 仅测量计算时间 ===
     let mut durations = Vec::new();
     for _ in 0..num_samples {
-        let tensor = Tensor::randn(0.0f32, 1.0, shape, &device).unwrap();
-        
         let start = Instant::now();
         let _result = tensor.argmin_keepdim(axis).unwrap();
         durations.push(start.elapsed().as_secs_f64());

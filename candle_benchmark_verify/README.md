@@ -133,3 +133,5 @@ cargo run --release --bin unary
 ## 许可
 
 与 burn-bench 项目保持一致
+
+对比 `cargo bb run -b unary binary matmul softmax reduce -B candle-cpu`
