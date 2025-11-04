@@ -1,0 +1,34 @@
+[package]
+name = "candle_benchmark_verify"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+
+[dependencies]
+candle-core = "0.9.1"
+candle-nn = "0.9.1"
+
+[[bin]]
+name = "all"
+path = "src/main.rs"
+
+[[bin]]
+name = "unary"
+path = "src/unary.rs"
+
+[[bin]]
+name = "binary"
+path = "src/binary.rs"
+
+[[bin]]
+name = "matmul"
+path = "src/matmul.rs"
+
+[[bin]]
+name = "softmax"
+path = "src/softmax.rs"
+
+[[bin]]
+name = "reduce"
+path = "src/reduce.rs"
