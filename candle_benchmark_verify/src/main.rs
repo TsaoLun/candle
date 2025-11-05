@@ -14,8 +14,8 @@ struct Args {
 
 // 宏：自动处理 benchmark 错误，失败时跳过
 macro_rules! run_benchmark {
-    ($name:expr, $shape:expr, $prepare:expr, $execute:expr, $samples:expr) => {
-        let _ = benchmark_with_prepare($name, $shape, $prepare, $execute, $samples);
+    ($name:expr, $shape:expr, $device:expr, $prepare:expr, $execute:expr, $samples:expr) => {
+        let _ = benchmark_with_prepare($name, $shape, $device, $prepare, $execute, $samples);
     };
 }
 
@@ -50,6 +50,7 @@ fn format_duration(ms: f64) -> String {
 fn benchmark_with_prepare<P, F>(
     name: &str,
     shape_info: &str,
+    device: &Device,
     mut prepare: P,
     mut execute: F,
     num_samples: usize,
@@ -76,6 +77,8 @@ where
                      "----", "----", "----", "----", "----", "----", "----");
             return Err(format!("warmup #{} failed: {}", i+1, e).into());
         }
+        // 确保 GPU 操作完成
+        device.synchronize()?;
     }
     std::thread::sleep(std::time::Duration::from_secs(1));
     
@@ -90,6 +93,8 @@ where
                      "----", "----", "----", "----", "----", "----", "----");
             return Err(format!("sample #{} failed: {}", i+1, e).into());
         }
+        // 确保 GPU 操作完成后才停止计时
+        device.synchronize()?;
         durations.push(start.elapsed().as_secs_f64() * 1000.0); // 转换为 ms
     }
     
@@ -130,6 +135,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             run_benchmark!(
                 "unary-f32",
                 "(32, 512, 1024)",
+                &device,
                 || Ok(()),
                 || { let _ = input.tanh()?; Ok(()) },
                 10
@@ -148,6 +154,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             run_benchmark!(
                 "binary-f32",
                 "(512, 512, 1024)",
+                &device,
                 || Ok(()),
                 || { let _ = lhs.mul(&rhs)?; Ok(()) },
                 10
@@ -157,6 +164,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         run_benchmark!(
             "binary_scalar-f32",
             "(512, 512, 1024)",
+            &device,
             || Ok(()),
             || { let _ = (&lhs * 2.5)?; Ok(()) },
             10
@@ -198,6 +206,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     run_benchmark!(
                         "matmul-general-f32",
                         &shape_info,
+                        &device,
                         || Ok(()),
                         || { let _ = lhs.matmul(&rhs)?; Ok(()) },
                         10
@@ -215,6 +224,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     run_benchmark!(
                         "matmul-inner-f32",
                         &format!("[({}, 1, {})({}), {}, 1)]", b, k, b, k),
+                        &device,
                         || Ok(()),
                         || { let _ = lhs.matmul(&rhs)?; Ok(()) },
                         10
@@ -232,6 +242,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     run_benchmark!(
                         "matmul-mat@vec-f32",
                         &format!("[({}, {}, {})({}, {}, 1)]", b, m, k, b, k),
+                        &device,
                         || Ok(()),
                         || { let _ = lhs.matmul(&rhs)?; Ok(()) },
                         10
@@ -247,6 +258,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     run_benchmark!(
                         "matmul-outer-f32",
                         &format!("[({}, {}, 1)({}, 1, {})]", b, m, b, n),
+                        &device,
                         || Ok(()),
                         || { let _ = lhs.matmul(&rhs)?; Ok(()) },
                         10
@@ -264,6 +276,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     run_benchmark!(
                         "matmul-vec@mat-f32",
                         &format!("[({}, 1, {})({}, {}, {})]", b, k, b, k, n),
+                        &device,
                         || Ok(()),
                         || { let _ = lhs.matmul(&rhs)?; Ok(()) },
                         10
@@ -297,6 +310,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 run_benchmark!(
                     &name,
                     "(2048, 256, 64)",
+                    &device,
                     || Ok(()),
                     || { let _ = t.argmin_keepdim(axis)?; Ok(()) },
                     10
@@ -311,6 +325,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     run_benchmark!(
                         &name,
                         "(2048, 256, 64)",
+                        &device,
                         || Ok(()),
                         || { let _ = fused_t.argmin_keepdim(axis)?; Ok(()) },
                         10
@@ -325,6 +340,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 run_benchmark!(
                     &name,
                     "(2048, 256, 64)",
+                    &device,
                     || Ok(()),
                     || { let _ = t.sum_keepdim(axis)?; Ok(()) },
                     10
@@ -339,6 +355,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     run_benchmark!(
                         &name,
                         "(2048, 256, 64)",
+                        &device,
                         || Ok(()),
                         || { let _ = fused_t.sum_keepdim(axis)?; Ok(()) },
                         10
@@ -351,6 +368,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             run_benchmark!(
                 "reduce-sum-full-f32",
                 "(2048, 256, 64)",
+                &device,
                 || Ok(()),
                 || { let _ = t.sum_all()?; Ok(()) },
                 10
@@ -390,6 +408,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 run_benchmark!(
                     "softmax-0-f32",
                     &shape_info,
+                    &device,
                     || Ok(()),
                     || { let _ = softmax(&t, 0)?; Ok(()) },
                     10
@@ -401,6 +420,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 run_benchmark!(
                     "softmax-1-f32",
                     &shape_info,
+                    &device,
                     || Ok(()),
                     || { let _ = softmax(&t, 1)?; Ok(()) },
                     10
@@ -412,6 +432,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 run_benchmark!(
                     "softmax-2-f32",
                     &shape_info,
+                    &device,
                     || Ok(()),
                     || { let _ = softmax(&t, D::Minus1)?; Ok(()) },
                     10
